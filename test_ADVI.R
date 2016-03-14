@@ -43,6 +43,7 @@ report_ADVI_for_method <- function(model_info, method) {
   png(plot_file_name)
   hist(max_z_scores[!is.na(max_z_scores)], xlab = "Max abs z-scores", main = paste(method, "max abs z-scores"))
   dev.off()
+  cat(paste("Printed histogram to", plot_file_name, "\n"))
   print_advi_output_message(max_z_scores, method)
 }
 
