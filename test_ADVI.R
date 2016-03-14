@@ -5,7 +5,7 @@ test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
   model_info <- list()
   model_start = 1
   if (file.exists("@temp@.Rdata")) load("@temp@.Rdata")
-  for (i in model_start:10) {
+  for (i in model_start:length(models)) {
     cat(paste("Model", i, "\n"))
     NUTS_info = NUTS_info_list[[models[i]]]
     if (all(is.na(NUTS_info))) {next}
