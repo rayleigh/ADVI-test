@@ -16,9 +16,11 @@ source('test_NUTS.R')
 test_NUTS('NUTS_info.Rdata')
 
 #Run to clean up NUTS_info_list
+remove(list = objects())
 load('NUTS_info.Rdata')
 NUTS_info_list <- lapply(NUTS_info_list, function(info) {if (is.list(info)) return(info); return(NA)})
-save(NUTS_info_list, "clean_NUTS_info.Rdata")
+NUTS_info_list[["knitr/soil-carbon/soil_incubation.stan"]] <- NA
+save(NUTS_info_list, file = "clean_NUTS_info.Rdata")
 
 ##################
 #Run to test ADVI#

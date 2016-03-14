@@ -5,7 +5,7 @@ test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
   model_info <- list()
   model_start = 1
   if (file.exists("@temp@.Rdata")) load("@temp@.Rdata")
-  for (i in model_start:length(models)) {
+  for (i in model_start:10) {
     cat(paste("Model", i, "\n"))
     NUTS_info = NUTS_info_list[[models[i]]]
     if (all(is.na(NUTS_info))) {next}
@@ -15,13 +15,14 @@ test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
       method <- test_methods[j]
       ADVI_info <- get_ADVI_info_for_model(i, method, stan_model, SEED, NUTS_info[["inits"]], cheat)
       if (all(is.na(ADVI_info))) {
-        info_matrix <- cbind(info_matrix, NA, NA)
-        num_cols <- ncol(info_matrix)
-        colnames(info_matrix)[(num_cols - 1):num_cols] <- 
-          c(paste(method, "mean", sep = "_"), paste(method, "sd", sep = "_"))
+        info_matrix <- cbind(info_matrix, NA, NA, NA)
       } else {
         info_matrix <- cbind(info_matrix, rbind(ADVI_info, 0))
+        info_matrix <- cbind(info_matrix, c(get_z_scores(info_matrix[-nrow(info_matrix),], method), 0))
       }
+      num_cols <- ncol(info_matrix)
+      colnames(info_matrix)[(num_cols - 2):num_cols] <- 
+        c(paste(method, "mean", sep = "_"), paste(method, "sd", sep = "_"), paste(method, "z-scores", sep = "_"))
     }
     model_info[[models[i]]] <- info_matrix[-nrow(info_matrix), ]
     model_start = i + 1
@@ -71,14 +72,20 @@ extract_ADVI_info <- function(ADVI_obj, method) {
   return(info_matrix[-nrow(info_matrix), ])
 }
 
-get_advi_max_zscore <- function(info_matrix, method) {
+get_z_scores <- function(info_matrix, method) {
   info_matrix <- rbind(info_matrix, 0)
-  NUTS_means <- info_matrix[-nrow(info_matrix), "mean"]
-  NUTS_sds <- info_matrix[-nrow(info_matrix), "sd"]
-  ADVI_means <- info_matrix[-nrow(info_matrix), paste(method, "mean", sep = "_")]
-  if (all(is.na(ADVI_means))) return(NA);
-  ADVI_zscores <- abs(((ADVI_means - NUTS_means) / NUTS_sds))
-  return(unname(ADVI_zscores[which.max(ADVI_zscores)]))
+  num_rows <- nrow(info_matrix)
+  NUTS_means <- info_matrix[-num_rows, "mean"]
+  NUTS_sds <- info_matrix[-num_rows, "sd"]
+  ADVI_means <- info_matrix[-num_rows, paste(method, "mean", sep = "_")]
+  return((ADVI_means - NUTS_means) / NUTS_sds)
+}
+
+get_advi_max_zscore <- function(info_matrix, method) {
+  z_scores <- info_matrix[, paste(method, "z-scores", sep = "_")]
+  if (all(is.na(z_scores))) return(NA);
+  z_scores <- abs(z_scores)
+  return(unname(z_scores[which.max(z_scores)]))
 }
 
 print_advi_output_message <- function(advi_z_scores, advi_method) {
@@ -88,15 +95,3 @@ print_advi_output_message <- function(advi_z_scores, advi_method) {
   output_message = paste(output_message, "\nThere are", sum(is.na(advi_z_scores)), "model(s) that did not turn out a result.\n")
   cat(output_message)
 }
-
-save_progress <- function(model_start, model_info, save) {
-  if (!save) return()
-  model_start = model_start + 1;
-  save(model_start, model_info, file = "@temp@.Rdata")
-}
-
-# does not work in parallel on Windows
-#z <- lapply(1:length(models), function(i) {test_ADVI(i)})
-#z <- mclapply(1:length(models), function(i) {test_ADVI(i)}, mc.preschedule = FALSE)
-#names(z) <- models
-#z <- z[sapply(z, is.matrix)]
