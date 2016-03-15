@@ -10,21 +10,22 @@ test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
     NUTS_info = NUTS_info_list[[models[i]]]
     if (all(is.na(NUTS_info))) {next}
     suppressWarnings(stan_model <- get_stanmodel(stan_demo(i, seed = SEED, iter = 1)))
-    info_matrix <- rbind(NUTS_info[["info_matrix"]], 0)
+    #Done because 1D matrix is not a matrix in R
+    info_matrix <- rbind(1, NUTS_info[["info_matrix"]])
     for (j in 1:length(test_methods)) {
       method <- test_methods[j]
       ADVI_info <- get_ADVI_info_for_model(i, method, stan_model, SEED, NUTS_info[["inits"]], cheat)
       if (all(is.na(ADVI_info))) {
         info_matrix <- cbind(info_matrix, NA, NA, NA)
       } else {
-        info_matrix <- cbind(info_matrix, rbind(ADVI_info, 0))
-        info_matrix <- cbind(info_matrix, c(get_z_scores(info_matrix[-nrow(info_matrix),], method), 0))
+        info_matrix <- cbind(info_matrix, rbind(1, ADVI_info))
+        info_matrix <- cbind(info_matrix, get_z_scores(info_matrix, method))
       }
       num_cols <- ncol(info_matrix)
       colnames(info_matrix)[(num_cols - 2):num_cols] <- 
         c(paste(method, "mean", sep = "_"), paste(method, "sd", sep = "_"), paste(method, "z-scores", sep = "_"))
     }
-    model_info[[models[i]]] <- info_matrix[-nrow(info_matrix), ]
+    model_info[[models[i]]] <- info_matrix[-1, ]
     model_start = i + 1
     save(model_start, model_info, file = "@temp@.Rdata")
   }
@@ -83,7 +84,8 @@ get_z_scores <- function(info_matrix, method) {
 }
 
 get_advi_max_zscore <- function(info_matrix, method) {
-  z_scores <- info_matrix[, paste(method, "z-scores", sep = "_")]
+  info_matrix <- rbind(0, info_matrix)
+  z_scores <- info_matrix[-1, paste(method, "z-scores", sep = "_")]
   if (all(is.na(z_scores))) return(NA);
   z_scores <- abs(z_scores)
   return(unname(z_scores[which.max(z_scores)]))

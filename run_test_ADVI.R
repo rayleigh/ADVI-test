@@ -9,6 +9,7 @@ models <- stan_demo(0) # choose option 1
 source('test_ADVI.R')
 load("clean_NUTS_info.Rdata")
 
+ADVI_output_file = "ADVI_report_info.Rdata"
 ADVI_report <- test_ADVI(NUTS_info_list, c("meanfield", "fullrank"))
-cat("Results saved in ADVI_report_info.Rdata")
-save(ADVI_report, file = "ADVI_report_info.Rdata")
+cat(paste("Results saved in", ADVI_output_file, "and available to view in ADVI_report"))
+save(ADVI_report, file = ADVI_output_file)
