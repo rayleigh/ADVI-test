@@ -10,22 +10,22 @@ test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
     NUTS_info = NUTS_info_list[[models[i]]]
     if (all(is.na(NUTS_info))) {next}
     suppressWarnings(stan_model <- get_stanmodel(stan_demo(i, seed = SEED, iter = 1)))
-    #Done because 1D matrix is not a matrix in R
-    info_matrix <- rbind(1, NUTS_info[["info_matrix"]])
+    #In case the matrix wasn't created by setting drop = F
+    info_matrix <- rbind(1, NUTS_info[["info_matrix"]])[-1, , drop = F]
     for (j in 1:length(test_methods)) {
       method <- test_methods[j]
       ADVI_info <- get_ADVI_info_for_model(i, method, stan_model, SEED, NUTS_info[["inits"]], cheat)
       if (all(is.na(ADVI_info))) {
         info_matrix <- cbind(info_matrix, NA, NA, NA)
       } else {
-        info_matrix <- cbind(info_matrix, rbind(1, ADVI_info))
-        info_matrix <- cbind(info_matrix, get_z_scores(info_matrix, method))
+        info_matrix <- cbind(info_matrix, ADVI_info)
+        info_matrix <- cbind(info_matrix, get_zscores(info_matrix, method))
       }
       num_cols <- ncol(info_matrix)
       colnames(info_matrix)[(num_cols - 2):num_cols] <- 
         c(paste(method, "mean", sep = "_"), paste(method, "sd", sep = "_"), paste(method, "z-scores", sep = "_"))
     }
-    model_info[[models[i]]] <- info_matrix[-1, ]
+    model_info[[models[i]]] <- info_matrix
     model_start = i + 1
     save(model_start, model_info, file = "@temp@.Rdata")
   }
@@ -39,7 +39,7 @@ report_ADVI <- function(model_info, method_list) {
 }
 
 report_ADVI_for_method <- function(model_info, method) {
-  max_z_scores <- sapply(model_info, function(info_matrix) {get_advi_max_zscore(info_matrix, method)}, simplify = T)
+  max_z_scores <- sapply(model_info, function(info_matrix) {get_max_zscore(info_matrix, method)}, simplify = T)
   plot_file_name = paste(method, "max_zscores_histogram.png", sep = "_")
   png(plot_file_name)
   hist(max_z_scores[!is.na(max_z_scores)], xlab = "Max abs z-scores", main = paste(method, "max abs z-scores"))
@@ -55,7 +55,7 @@ get_ADVI_info_for_model <- function(i, method, stan_model, SEED, init_vals, chea
     ADVI <- run_advi(i, method, stan_model, SEED, "random")
   }
   if (is.null(ADVI)) return(NA)
-  return(extract_ADVI_info(ADVI, method))
+  return(get_ADVI_info(ADVI, method))
 }
 
 run_advi <- function(i, ADVI_method, stan_model, SEED, init_vals) {
@@ -68,24 +68,21 @@ run_advi <- function(i, ADVI_method, stan_model, SEED, init_vals) {
     })
 }
 
-extract_ADVI_info <- function(ADVI_obj, method) {
-  info_matrix <- summary(ADVI_obj)$summary[, c("mean", "sd")]
+get_ADVI_info <- function(ADVI_obj) {
+  info_matrix <- as.matrix(ADVI_obj)$summary[, c("mean", "sd"), drop = FALSE]
   colnames(info_matrix) <- paste(method, colnames(info_matrix), sep = "_")
-  return(info_matrix[-nrow(info_matrix), ])
+  return(info_matrix[-nrow(info_matrix),, drop = FALSE])
 }
 
-get_z_scores <- function(info_matrix, method) {
-  info_matrix <- rbind(info_matrix, 0)
-  num_rows <- nrow(info_matrix)
-  NUTS_means <- info_matrix[-num_rows, "mean"]
-  NUTS_sds <- info_matrix[-num_rows, "sd"]
-  ADVI_means <- info_matrix[-num_rows, paste(method, "mean", sep = "_")]
+get_zscores <- function(info_matrix, method) {
+  NUTS_means <- info_matrix[, "mean", drop = FALSE]
+  NUTS_sds <- info_matrix[, "sd", drop = FALSE]
+  ADVI_means <- info_matrix[, paste(method, "mean", sep = "_"), drop = FALSE]
   return((ADVI_means - NUTS_means) / NUTS_sds)
 }
 
-get_advi_max_zscore <- function(info_matrix, method) {
-  info_matrix <- rbind(0, info_matrix)
-  z_scores <- info_matrix[-1, paste(method, "z-scores", sep = "_")]
+get_max_zscore <- function(info_matrix, method) {
+  z_scores <- info_matrix[, paste(method, "z-scores", sep = "_")]
   if (all(is.na(z_scores))) return(NA);
   z_scores <- abs(z_scores)
   return(unname(z_scores[which.max(z_scores)]))

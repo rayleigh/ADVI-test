@@ -40,6 +40,6 @@ run_nuts <- function(i, SEED, num_iter = 2000) {
 
 extract_nuts_info <- function(NUTS) {
   nuts_matrix <- summary(NUTS)$summary
-  return(list("info_matrix" = nuts_matrix[-nrow(nuts_matrix), c("mean", "sd", "n_eff", "Rhat")],
+  return(list("info_matrix" = nuts_matrix[-nrow(nuts_matrix), c("mean", "sd", "n_eff", "Rhat"), drop = F],
               "inits" = relist(nuts_matrix[-nrow(nuts_matrix), "mean"], NUTS@inits[[1]])))
 }  

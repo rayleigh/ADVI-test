@@ -36,5 +36,5 @@ source('test_ADVI.R')
 load("clean_NUTS_info.Rdata")
 
 ADVI_report <- test_ADVI(NUTS_info_list, c("meanfield", "fullrank"))
-cat("Results saved in ADVI_report_info.Rdata")
+cat("Results saved in ADVI_report_info.Rdata\n")
 save(ADVI_report, file = "ADVI_report_info.Rdata")
