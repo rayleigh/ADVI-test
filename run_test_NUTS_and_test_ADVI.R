@@ -24,6 +24,7 @@ save(NUTS_info_list, file = "clean_NUTS_info.Rdata")
 ##################
 #Run to test ADVI#
 ##################
+#DEPRECATED
 remove(list = objects())
 library(parallel)
 library(rstan)

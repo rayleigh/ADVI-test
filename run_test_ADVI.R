@@ -1,3 +1,5 @@
+#DEPRECATED
+
 remove(list = objects())
 setwd("~/Documents/Gelman Research/ADVI test/")
 library(parallel)

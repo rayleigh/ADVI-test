@@ -1,3 +1,5 @@
+#DEPRECATED
+
 test_ADVI <- function(NUTS_info_list, test_methods, cheat = T)
 {
   models <- stan_demo(0)
